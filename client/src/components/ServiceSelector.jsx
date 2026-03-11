@@ -100,7 +100,7 @@ const miniLabel = {
 export default function ServiceSelector({ selected, onToggle, overrides = {}, onUpdateOverride }) {
   return (
     <div className="card">
-      <h2 className="section-title">Services</h2>
+      <h2 className="section-title">Services ✏️ v2</h2>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
         {CATALOG.map((cat) => {
           const isRolloff = cat.category === 'Roll-Off Dumpsters'
