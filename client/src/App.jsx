@@ -22,6 +22,8 @@ export default function App() {
 
   const [selectedServices, setSelectedServices] = useState([])
 
+  const [serviceOverrides, setServiceOverrides] = useState({})
+
   const [customItems, setCustomItems] = useState([])
 
   const [notes, setNotes] = useState(DEFAULT_NOTES)
@@ -33,6 +35,13 @@ export default function App() {
     setSelectedServices((prev) =>
       prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
     )
+  }
+
+  const handleUpdateServiceOverride = (id, updates) => {
+    setServiceOverrides((prev) => ({
+      ...prev,
+      [id]: { ...(prev[id] || {}), ...updates },
+    }))
   }
 
   const handleAddCustomItem = () => {
@@ -57,12 +66,34 @@ export default function App() {
     const byCategory = {}
     resolvedServices.forEach((svc) => {
       if (!byCategory[svc.category]) byCategory[svc.category] = []
-      byCategory[svc.category].push({
-        name: svc.name,
-        note: svc.note || '',
-        price: svc.price,
-        priceNote: svc.priceNote || '',
-      })
+      const override = serviceOverrides[svc.id] || {}
+      const isRolloff = svc.category === 'Roll-Off Dumpsters'
+
+      const name = override.name ?? svc.name
+      const note = override.note ?? (svc.note || '')
+
+      let price, priceNote
+      if (isRolloff) {
+        const catalogSwap = svc.price.replace(/[^0-9.]/g, '')
+        const perTonMatch = svc.priceNote.match(/\$(\d+)\/ton/)
+        const catalogPerTon = perTonMatch ? perTonMatch[1] : ''
+        const swapPrice = override.swapPrice ?? catalogSwap
+        const perTonPrice = override.perTonPrice ?? catalogPerTon
+        price = `$${swapPrice}`
+        priceNote =
+          svc.id === 'rolloff_metal'
+            ? perTonPrice
+              ? `/ swap  $${perTonPrice}/ton rebate`
+              : '/ swap'
+            : perTonPrice
+            ? `/ swap  +$${perTonPrice}/ton over`
+            : '/ swap'
+      } else {
+        price = override.price ?? svc.price
+        priceNote = override.priceNote ?? (svc.priceNote || '')
+      }
+
+      byCategory[svc.category].push({ name, note, price, priceNote })
     })
 
     Object.entries(byCategory).forEach(([category, items]) => {
@@ -144,7 +175,12 @@ export default function App() {
           {/* Left column — form */}
           <div className="form-column">
             <CustomerInfo data={customerInfo} onChange={setCustomerInfo} />
-            <ServiceSelector selected={selectedServices} onToggle={handleToggleService} />
+            <ServiceSelector
+              selected={selectedServices}
+              onToggle={handleToggleService}
+              overrides={serviceOverrides}
+              onUpdateOverride={handleUpdateServiceOverride}
+            />
             <CustomLineItems
               items={customItems}
               onAdd={handleAddCustomItem}
