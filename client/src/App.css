@@ -1,90 +1,54 @@
 .app {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
 }
 
-/* ── Header ── */
 .app-header {
-  background: white;
+  background: #fff;
   border-bottom: 1px solid var(--gray-200);
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 20;
 }
 
 .header-inner {
-  max-width: 1280px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 0 24px;
-  height: 64px;
-  display: flex;
-  align-items: center;
-}
-
-.header-brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.header-logo-mark {
-  width: 40px;
-  height: 40px;
-  background: var(--orange);
-  color: white;
-  font-weight: 800;
-  font-size: 14px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  letter-spacing: 0.03em;
+  padding: 16px 24px;
 }
 
 .header-title {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
-  color: var(--gray-900);
 }
 
-.header-subtitle {
-  font-size: 12px;
-  color: var(--gray-400);
-}
-
-/* ── Main layout ── */
 .app-main {
-  flex: 1;
-  padding: 32px 24px;
+  padding: 24px;
 }
 
 .layout {
-  max-width: 1280px;
+  max-width: 1200px;
   margin: 0 auto;
   display: grid;
   grid-template-columns: 1fr 340px;
-  gap: 24px;
-  align-items: start;
+  gap: 20px;
 }
 
 .form-column {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
 }
 
-.preview-column {
-  /* sticky handled inline in component */
+.subheading {
+  font-size: 11px;
+  color: var(--gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 700;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1000px) {
   .layout {
     grid-template-columns: 1fr;
-  }
-
-  .preview-column {
-    order: -1;
   }
 }

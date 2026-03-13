@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import CustomerInfo from './components/CustomerInfo.jsx'
 import ServiceSelector, { CATALOG } from './components/ServiceSelector.jsx'
 import CustomLineItems from './components/CustomLineItems.jsx'
@@ -6,147 +6,92 @@ import NotesTerms, { DEFAULT_NOTES } from './components/NotesTerms.jsx'
 import QuotePreview from './components/QuotePreview.jsx'
 import './App.css'
 
-const SERVICE_MAP = {}
-CATALOG.forEach((cat) => {
-  cat.services.forEach((svc) => {
-    SERVICE_MAP[svc.id] = { ...svc, category: cat.category }
-  })
-})
+const DEFAULT_REP = {
+  id: 'rep-jacob-jones',
+  name: 'Jacob Jones',
+  email: 'jacob@mashedco.com',
+  phone: '615-972-8323',
+}
+
+const SERVICE_MAP = Object.fromEntries(
+  CATALOG.flatMap((category) =>
+    category.services.map((service) => [service.id, { ...service, category: category.category }])
+  )
+)
 
 export default function App() {
-  const [customerInfo, setCustomerInfo] = useState({
-    customerName: '',
-    companyName: '',
-    address: '',
-  })
-
+  const [reps, setReps] = useState([DEFAULT_REP])
+  const [customerInfo, setCustomerInfo] = useState({ customerName: '', companyName: '', address: '', repId: DEFAULT_REP.id })
   const [selectedServices, setSelectedServices] = useState([])
-
   const [serviceOverrides, setServiceOverrides] = useState({})
-
   const [customItems, setCustomItems] = useState([])
-
   const [notes, setNotes] = useState(DEFAULT_NOTES)
-
   const [isGenerating, setIsGenerating] = useState(false)
-  const [error, setError] = useState(null)
+  const [error, setError] = useState('')
 
-  const handleToggleService = (id) => {
-    setSelectedServices((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
-    )
-  }
-
-  const handleUpdateServiceOverride = (id, updates) => {
-    setServiceOverrides((prev) => ({
-      ...prev,
-      [id]: { ...(prev[id] || {}), ...updates },
-    }))
-  }
-
-  const handleAddCustomItem = () => {
-    setCustomItems((prev) => [...prev, { name: '', note: '', price: '', priceNote: '' }])
-  }
-
-  const handleChangeCustomItem = (index, updated) => {
-    setCustomItems((prev) => prev.map((item, i) => (i === index ? updated : item)))
-  }
-
-  const handleRemoveCustomItem = (index) => {
-    setCustomItems((prev) => prev.filter((_, i) => i !== index))
-  }
-
-  const buildPayload = () => {
-    const resolvedServices = selectedServices.map((id) => SERVICE_MAP[id]).filter(Boolean)
-    const validCustomItems = customItems.filter((i) => i.name.trim())
-
-    const sections = []
-
-    // Group standard services by category
-    const byCategory = {}
-    resolvedServices.forEach((svc) => {
-      if (!byCategory[svc.category]) byCategory[svc.category] = []
-      const override = serviceOverrides[svc.id] || {}
-      const isRolloff = svc.category === 'Roll-Off Dumpsters'
-
-      const name = override.name ?? svc.name
-      const note = override.note ?? (svc.note || '')
-
-      let price, priceNote
-      if (isRolloff) {
-        const catalogSwap = svc.price.replace(/[^0-9.]/g, '')
-        const perTonMatch = svc.priceNote.match(/\$(\d+)\/ton/)
-        const catalogPerTon = perTonMatch ? perTonMatch[1] : ''
-        const swapPrice = override.swapPrice ?? catalogSwap
-        const perTonPrice = override.perTonPrice ?? catalogPerTon
-        price = `$${swapPrice}`
-        priceNote =
-          svc.id === 'rolloff_metal'
-            ? perTonPrice
-              ? `/ swap  $${perTonPrice}/ton rebate`
-              : '/ swap'
-            : perTonPrice
-            ? `/ swap  +$${perTonPrice}/ton over`
-            : '/ swap'
-      } else {
-        price = override.price ?? svc.price
-        priceNote = override.priceNote ?? (svc.priceNote || '')
-      }
-
-      byCategory[svc.category].push({ name, note, price, priceNote })
-    })
-
-    Object.entries(byCategory).forEach(([category, items]) => {
-      sections.push({ category, items })
-    })
-
-    if (validCustomItems.length > 0) {
-      sections.push({
-        category: 'Additional Services',
-        items: validCustomItems.map((i) => ({
-          name: i.name,
-          note: i.note || '',
-          price: i.price,
-          priceNote: i.priceNote || '',
-        })),
+  const sections = useMemo(() => {
+    const grouped = {}
+    for (const id of selectedServices) {
+      const service = SERVICE_MAP[id]
+      if (!service) continue
+      const override = serviceOverrides[id] || {}
+      if (!grouped[service.category]) grouped[service.category] = []
+      const isRolloff = service.category === 'Roll-Off Dumpsters'
+      const wasteType = override.wasteType ?? 'C&D'
+      grouped[service.category].push({
+        name: isRolloff ? `${override.name ?? service.name} - ${wasteType}` : override.name ?? service.name,
+        note: override.note ?? service.note,
+        price: override.price ?? service.price,
+        priceNote: override.priceNote ?? service.priceNote,
       })
     }
 
-    return {
-      customerInfo,
-      sections,
-      notes,
+    const result = Object.entries(grouped).map(([category, items]) => ({ category, items }))
+    const validCustom = customItems.filter((item) => item.name.trim() && item.price.trim())
+    if (validCustom.length) {
+      result.push({ category: 'Additional Services', items: validCustom })
     }
+    return result
+  }, [selectedServices, serviceOverrides, customItems])
+
+  const selectedRep = reps.find((rep) => rep.id === customerInfo.repId) ?? DEFAULT_REP
+
+  const addRep = (rep) => {
+    const id = `rep-${Date.now()}`
+    setReps((prev) => [...prev, { ...rep, id }])
+    setCustomerInfo((prev) => ({ ...prev, repId: id }))
   }
 
-  const handleGenerate = async () => {
-    setError(null)
-    setIsGenerating(true)
+  const toggleService = (id) => {
+    setSelectedServices((prev) => (prev.includes(id) ? prev.filter((value) => value !== id) : [...prev, id]))
+  }
 
+  const updateService = (id, updates) => {
+    setServiceOverrides((prev) => ({ ...prev, [id]: { ...(prev[id] || {}), ...updates } }))
+  }
+
+  const generateQuote = async () => {
+    setError('')
+    setIsGenerating(true)
     try {
-      const payload = buildPayload()
-      const res = await fetch('/api/generate-quote', {
+      const response = await fetch('/api/generate-quote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ customerInfo: { ...customerInfo, rep: selectedRep }, sections, notes }),
       })
 
-      if (!res.ok) {
-        const text = await res.text()
-        throw new Error(text || `Server error: ${res.status}`)
+      if (!response.ok) {
+        throw new Error(await response.text())
       }
 
-      const blob = await res.blob()
-      const today = new Date()
-      const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '')
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `Mashed_Waste_Quote_${dateStr}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      a.remove()
-      URL.revokeObjectURL(url)
+      const blob = await response.blob()
+      const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `Mashed_Waste_Quote_${dateStr}.pdf`
+      link.click()
+      window.URL.revokeObjectURL(url)
     } catch (err) {
       setError(err.message)
     } finally {
@@ -156,66 +101,36 @@ export default function App() {
 
   return (
     <div className="app">
-      {/* Header */}
       <header className="app-header">
         <div className="header-inner">
-          <div className="header-brand">
-            <div className="header-logo-mark">MW</div>
-            <div>
-              <div className="header-title">Quote Generator</div>
-              <div className="header-subtitle">Mashed Waste Company — Internal Tool</div>
-            </div>
-          </div>
+          <div className="header-title">Mashed Waste Internal Quoting Tool</div>
         </div>
       </header>
 
-      {/* Main */}
       <main className="app-main">
         <div className="layout">
-          {/* Left column — form */}
           <div className="form-column">
-            <CustomerInfo data={customerInfo} onChange={setCustomerInfo} />
-            <ServiceSelector
-              selected={selectedServices}
-              onToggle={handleToggleService}
-              overrides={serviceOverrides}
-              onUpdateOverride={handleUpdateServiceOverride}
-            />
+            <CustomerInfo data={customerInfo} onChange={setCustomerInfo} reps={reps} onAddRep={addRep} />
+            <ServiceSelector selected={selectedServices} onToggle={toggleService} overrides={serviceOverrides} onUpdateOverride={updateService} />
             <CustomLineItems
               items={customItems}
-              onAdd={handleAddCustomItem}
-              onChange={handleChangeCustomItem}
-              onRemove={handleRemoveCustomItem}
+              onAdd={() => setCustomItems((prev) => [...prev, { name: '', note: '', price: '', priceNote: '' }])}
+              onChange={(index, item) => setCustomItems((prev) => prev.map((row, rowIndex) => (rowIndex === index ? item : row)))}
+              onRemove={(index) => setCustomItems((prev) => prev.filter((_, rowIndex) => rowIndex !== index))}
             />
             <NotesTerms value={notes} onChange={setNotes} />
-
-            {error && (
-              <div
-                style={{
-                  background: '#fef2f2',
-                  border: '1.5px solid #fca5a5',
-                  borderRadius: 8,
-                  padding: '12px 16px',
-                  color: '#dc2626',
-                  fontSize: 14,
-                }}
-              >
-                <strong>Error:</strong> {error}
-              </div>
-            )}
           </div>
 
-          {/* Right column — preview */}
-          <aside className="preview-column">
+          <div className="preview-column">
             <QuotePreview
               customerInfo={customerInfo}
-              selectedServices={selectedServices}
-              customItems={customItems}
+              sections={sections}
               notes={notes}
-              onGenerate={handleGenerate}
+              onGenerate={generateQuote}
               isGenerating={isGenerating}
+              error={error}
             />
-          </aside>
+          </div>
         </div>
       </main>
     </div>

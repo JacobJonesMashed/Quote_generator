@@ -1,22 +1,33 @@
-import React from 'react'
+import React, { useState } from 'react'
 
-export default function CustomerInfo({ data, onChange }) {
-  const handleChange = (field) => (e) => {
-    onChange({ ...data, [field]: e.target.value })
+export default function CustomerInfo({ data, onChange, reps, onAddRep }) {
+  const [draftRep, setDraftRep] = useState({ name: '', email: '', phone: '' })
+
+  const updateField = (field, value) => {
+    onChange({ ...data, [field]: value })
+  }
+
+  const selectedRep = reps.find((rep) => rep.id === data.repId)
+
+  const handleAddRep = () => {
+    if (!draftRep.name.trim() || !draftRep.email.trim() || !draftRep.phone.trim()) return
+    onAddRep(draftRep)
+    setDraftRep({ name: '', email: '', phone: '' })
   }
 
   return (
     <div className="card">
-      <h2 className="section-title">Customer Information</h2>
+      <h2 className="section-title">Customer & Rep Information</h2>
+
       <div className="form-row cols-2">
         <div className="form-group" style={{ marginBottom: 0 }}>
           <label htmlFor="customerName">Customer Name *</label>
           <input
             id="customerName"
             type="text"
-            placeholder="John Smith"
             value={data.customerName}
-            onChange={handleChange('customerName')}
+            onChange={(e) => updateField('customerName', e.target.value)}
+            placeholder="Customer contact"
           />
         </div>
         <div className="form-group" style={{ marginBottom: 0 }}>
@@ -24,21 +35,75 @@ export default function CustomerInfo({ data, onChange }) {
           <input
             id="companyName"
             type="text"
-            placeholder="Acme Corp"
             value={data.companyName}
-            onChange={handleChange('companyName')}
+            onChange={(e) => updateField('companyName', e.target.value)}
+            placeholder="Customer company"
           />
         </div>
       </div>
-      <div className="form-group" style={{ marginTop: 16, marginBottom: 0 }}>
-        <label htmlFor="address">Service Address <span style={{ color: 'var(--gray-400)', fontWeight: 400 }}>(optional)</span></label>
+
+      <div className="form-group" style={{ marginTop: 16 }}>
+        <label htmlFor="address">Address (optional)</label>
         <input
           id="address"
           type="text"
-          placeholder="123 Main St, City, ST 00000"
           value={data.address}
-          onChange={handleChange('address')}
+          onChange={(e) => updateField('address', e.target.value)}
+          placeholder="123 Main St, City, ST ZIP"
         />
+      </div>
+
+      <div className="form-row cols-2" style={{ marginBottom: 8 }}>
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label htmlFor="repSelect">Sales Rep</label>
+          <select
+            id="repSelect"
+            value={data.repId}
+            onChange={(e) => updateField('repId', e.target.value)}
+          >
+            {reps.map((rep) => (
+              <option key={rep.id} value={rep.id}>
+                {rep.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label>Selected Rep Details</label>
+          <div style={{ fontSize: 13, color: 'var(--gray-500)', marginTop: 8 }}>
+            <div>{selectedRep?.email}</div>
+            <div>{selectedRep?.phone}</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 16, borderTop: '1px solid var(--gray-200)', paddingTop: 16 }}>
+        <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8, color: 'var(--gray-500)', textTransform: 'uppercase' }}>
+          Admin: Add Rep
+        </div>
+        <div className="form-row cols-3" style={{ marginBottom: 10 }}>
+          <input
+            type="text"
+            placeholder="Rep name"
+            value={draftRep.name}
+            onChange={(e) => setDraftRep((prev) => ({ ...prev, name: e.target.value }))}
+          />
+          <input
+            type="email"
+            placeholder="Rep email"
+            value={draftRep.email}
+            onChange={(e) => setDraftRep((prev) => ({ ...prev, email: e.target.value }))}
+          />
+          <input
+            type="text"
+            placeholder="Rep phone"
+            value={draftRep.phone}
+            onChange={(e) => setDraftRep((prev) => ({ ...prev, phone: e.target.value }))}
+          />
+        </div>
+        <button type="button" className="btn-secondary" onClick={handleAddRep}>
+          Add Rep
+        </button>
       </div>
     </div>
   )
