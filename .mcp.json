@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "zoho_bigin-composio": {
+      "type": "http",
+      "url": "https://mcp.composio.dev/partner/composio/zoho_bigin/mcp?customerId=ef68b551-3935-404b-8d04-36e7a1c7e557&agent=cursor",
+      "headers": {
+        "X-API-Key": "ak_LPAFhT_uA3GM90EzFoC5"
+      }
+    }
+  }
+}
