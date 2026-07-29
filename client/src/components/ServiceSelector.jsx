@@ -1,6 +1,6 @@
 import React from 'react'
 
-const WASTE_TYPES = ['C&D', 'MSW', 'Cardboard', 'Metal']
+const WASTE_TYPES = ['C&D', 'MSW', 'Cardboard', 'Metal', 'Clean Green Waste']
 
 export const CATALOG = [
   {
@@ -21,6 +21,8 @@ export const CATALOG = [
       { id: 'rolloff_40', name: '40-Yard Roll-Off Dumpster', note: '', price: '$650', priceNote: '/ swap' },
       { id: 'rolloff_30', name: '30-Yard Roll-Off Dumpster', note: '', price: '$595', priceNote: '/ swap' },
       { id: 'rolloff_20', name: '20-Yard Roll-Off Dumpster', note: '', price: '$485', priceNote: '/ swap' },
+      { id: 'rolloff_15', name: '15-Yard Roll-Off Dumpster', note: '', price: '$425', priceNote: '/ swap' },
+      { id: 'rolloff_10', name: '10-Yard Roll-Off Dumpster', note: '', price: '$375', priceNote: '/ swap' },
     ],
   },
   {

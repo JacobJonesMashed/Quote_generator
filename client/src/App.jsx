@@ -1,8 +1,8 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import CustomerInfo from './components/CustomerInfo.jsx'
 import ServiceSelector, { CATALOG } from './components/ServiceSelector.jsx'
 import CustomLineItems from './components/CustomLineItems.jsx'
-import NotesTerms, { DEFAULT_NOTES } from './components/NotesTerms.jsx'
+import NotesTerms, { buildNotes } from './components/NotesTerms.jsx'
 import QuotePreview from './components/QuotePreview.jsx'
 import './App.css'
 
@@ -13,6 +13,16 @@ const DEFAULT_REP = {
   phone: '615-972-8323',
 }
 
+const DEFAULT_REPS = [
+  DEFAULT_REP,
+  { id: 'rep-cody-jones', name: 'Cody Jones', email: 'cody@mashedco.com', phone: '' },
+  { id: 'rep-courtnee-bader', name: 'Courtnee Bader', email: 'cbader@mashedco.com', phone: '' },
+  { id: 'rep-hunter-mckelvy', name: 'Hunter McKelvy', email: 'hmckelvy@mashedco.com', phone: '' },
+  { id: 'rep-sam-cargo', name: 'Sam Cargo', email: 'scargo@mashedco.com', phone: '' },
+  { id: 'rep-danny-baumann', name: 'Danny Baumann', email: 'danny@mashedco.com', phone: '' },
+  { id: 'rep-kimberly-woznac', name: 'Kimberly Woznac', email: 'kwoznac@mashedco.com', phone: '' },
+]
+
 const SERVICE_MAP = Object.fromEntries(
   CATALOG.flatMap((category) =>
     category.services.map((service) => [service.id, { ...service, category: category.category }])
@@ -20,14 +30,23 @@ const SERVICE_MAP = Object.fromEntries(
 )
 
 export default function App() {
-  const [reps, setReps] = useState([DEFAULT_REP])
+  const [reps, setReps] = useState(DEFAULT_REPS)
   const [customerInfo, setCustomerInfo] = useState({ customerName: '', companyName: '', address: '', repId: DEFAULT_REP.id })
   const [selectedServices, setSelectedServices] = useState([])
   const [serviceOverrides, setServiceOverrides] = useState({})
   const [customItems, setCustomItems] = useState([])
-  const [notes, setNotes] = useState(DEFAULT_NOTES)
+  const autoNotes = useMemo(
+    () => buildNotes(selectedServices, serviceOverrides, SERVICE_MAP),
+    [selectedServices, serviceOverrides]
+  )
+  const [notes, setNotes] = useState(autoNotes)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState('')
+
+  // Keep notes/terms in sync with which line items are selected.
+  useEffect(() => {
+    setNotes(autoNotes)
+  }, [autoNotes])
 
   const sections = useMemo(() => {
     const grouped = {}
@@ -118,7 +137,7 @@ export default function App() {
               onChange={(index, item) => setCustomItems((prev) => prev.map((row, rowIndex) => (rowIndex === index ? item : row)))}
               onRemove={(index) => setCustomItems((prev) => prev.filter((_, rowIndex) => rowIndex !== index))}
             />
-            <NotesTerms value={notes} onChange={setNotes} />
+            <NotesTerms value={notes} onChange={setNotes} defaultNotes={autoNotes} />
           </div>
 
           <div className="preview-column">
